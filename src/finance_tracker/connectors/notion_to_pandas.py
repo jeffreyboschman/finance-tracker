@@ -3,15 +3,21 @@
 from datetime import datetime
 
 import pandas as pd
+from dotenv import load_dotenv
 
 from finance_tracker.connectors import notion_utils
+from finance_tracker.connectors.notion_api import get_database
 
 
-def get_pandas_df(pages: dict):
+def get_full_df():
+    """Main function"""
+
+    load_dotenv()
+    pages = get_database()
 
     page_dicts = []
     for page in pages:
-        page_dict = dict()
+        page_dict = {}
 
         # page_id = page["id"]
         props = page["properties"]

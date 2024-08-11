@@ -1,20 +1,15 @@
 import pandas as pd
 import plotly.express as px
-from dotenv import load_dotenv
 
 import finance_tracker.graphs.utils as graph_utils
-from finance_tracker.connectors.notion_api import get_database
-from finance_tracker.connectors.notion_to_pandas import get_pandas_df
+from finance_tracker.connectors.notion_to_pandas import get_full_df
 
 
 def graph_business_related_transfer_to_savings_totals(
     df: pd.DataFrame, write: bool = False
 ):
     """Good one"""
-    df = df.copy()
-    df = df[(df["business_related"] == "Business-Related")]
-    df["date"] = pd.to_datetime(df["date"])
-    df["month_year"] = df["date"].dt.to_period("M").astype(str)
+    df = graph_utils.preprocess_business_data(df)
 
     savings_df = df[df["cash_flow_type"] == "Transfer to Savings"]
 
@@ -62,7 +57,5 @@ def graph_business_related_transfer_to_savings_totals(
 
 
 if __name__ == "__main__":
-    load_dotenv()
-    notion_db = get_database()
-    df = get_pandas_df(notion_db)
-    graph_business_related_transfer_to_savings_totals(df, write=False)
+    full_df = get_full_df()
+    graph_business_related_transfer_to_savings_totals(full_df, write=False)

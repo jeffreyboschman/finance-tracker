@@ -1,5 +1,7 @@
 import calendar
 
+import pandas as pd
+
 CASH_FLOW_COLOR_MAP = {
     "Revenue": "#4DAB9A",
     "Expense": "#FF7369",
@@ -25,3 +27,13 @@ def get_days_in_month(year, month):
     # Generate a list of all the days in the month
     days_in_month = list(range(1, num_days + 1))
     return days_in_month
+
+
+def preprocess_business_data(df: pd.DataFrame) -> pd.DataFrame:
+    """Preprocess the DataFrame by filtering business-related entries
+    and creating the 'month_year' column."""
+    df = df.copy()
+    df = df[df["business_related"] == "Business-Related"]
+    df["date"] = pd.to_datetime(df["date"])
+    df["month_year"] = df["date"].dt.to_period("M").astype(str)
+    return df

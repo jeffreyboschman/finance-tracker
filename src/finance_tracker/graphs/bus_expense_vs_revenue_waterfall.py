@@ -1,9 +1,8 @@
 import pandas as pd
 import plotly.graph_objects as go
-from dotenv import load_dotenv
 
-from finance_tracker.connectors.notion_api import get_database
-from finance_tracker.connectors.notion_to_pandas import get_pandas_df
+import finance_tracker.graphs.utils as graph_utils
+from finance_tracker.connectors.notion_to_pandas import get_full_df
 
 
 def graph_business_related_expense_vs_revenue_vs_savings_waterfall(
@@ -32,10 +31,7 @@ def graph_business_related_expense_vs_revenue_vs_savings_waterfall(
         ValueError: If the 'date' column cannot be converted to datetime format.
 
     """
-    df = df.copy()
-    df = df[(df["business_related"] == "Business-Related")]
-    df["date"] = pd.to_datetime(df["date"])
-    df = df.sort_values(by="date")
+    df = graph_utils.preprocess_business_data(df)
 
     # Separate data for revenue and expense and savings
     revenue_df = df[df["cash_flow_type"] == "Revenue"]
@@ -105,7 +101,5 @@ def graph_business_related_expense_vs_revenue_vs_savings_waterfall(
 
 
 if __name__ == "__main__":
-    load_dotenv()
-    notion_db = get_database()
-    df = get_pandas_df(notion_db)
-    graph_business_related_expense_vs_revenue_vs_savings_waterfall(df, write=False)
+    full_df = get_full_df()
+    graph_business_related_expense_vs_revenue_vs_savings_waterfall(full_df, write=False)
