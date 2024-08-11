@@ -1,7 +1,11 @@
-import create_graphs
 from dotenv import load_dotenv
 from flask import Flask, send_file
-from main import get_database, get_pandas_df
+
+from finance_tracker.connectors.notion_api import get_database
+from finance_tracker.connectors.notion_to_pandas import get_pandas_df
+from finance_tracker.graphs.bus_expense_vs_revenue_totals import (
+    graph_business_related_expense_vs_revenue_totals,
+)
 
 app = Flask(__name__)
 
@@ -12,7 +16,7 @@ def serve_chart():
     load_dotenv()
     notion_db = get_database()
     df = get_pandas_df(notion_db)
-    create_graphs.graph_business_related_expense_vs_revenue_totals(df, write=True)
+    graph_business_related_expense_vs_revenue_totals(df, write=True)
     return send_file("chart.html")
 
 

@@ -2,13 +2,12 @@ import pandas as pd
 import plotly.graph_objects as go
 from dotenv import load_dotenv
 
-import finance_tracker.graphs.utils as graph_utils
 from finance_tracker.connectors.notion_api import get_database
 from finance_tracker.connectors.notion_to_pandas import get_pandas_df
 
 
 def graph_business_related_expense_vs_revenue_vs_savings_waterfall(
-    df, write: bool = False
+    df: pd.DataFrame, write: bool = False
 ):
     """
     Generates a waterfall graph of business-related expenses versus revenues
@@ -26,7 +25,8 @@ def graph_business_related_expense_vs_revenue_vs_savings_waterfall(
             the plot will not be saved.
 
     Returns:
-        None: This function displays a Plotly waterfall graph and optionally saves it as an HTML file.
+        None: This function displays a Plotly waterfall graph and optionally saves it as an
+             HTML file.
 
     Raises:
         ValueError: If the 'date' column cannot be converted to datetime format.

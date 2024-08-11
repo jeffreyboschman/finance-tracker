@@ -46,7 +46,7 @@ def graph_business_related_transfer_to_savings_totals(
         x=1,
         y=1,
         showarrow=False,
-        font=dict(size=12, color="black"),
+        font={"size": 12, "color": "black"},
         bgcolor="white",
         bordercolor="black",
         borderwidth=1,
