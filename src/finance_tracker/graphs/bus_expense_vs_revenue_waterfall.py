@@ -7,18 +7,18 @@ from finance_tracker.connectors.notion_to_pandas import get_full_df
 
 def graph_business_related_expense_vs_revenue_vs_savings_waterfall(
     df: pd.DataFrame, write: bool = False
-):
+) -> None:
     """
-    Generates a waterfall graph of business-related expenses versus revenues
-    and optionally saves it as an HTML file.
+    Generates a waterfall graph of business-related expenses versus revenues and
+    optionally saves it as an HTML file.
 
-    This function filters the provided DataFrame for business-related transactions and
-    aggregates the data into revenue and expense categories by date. Revenue amounts are
-    halved, and expenses are made negative. The data is then aggregated by date, and a
-    cumulative waterfall chart is generated using Plotly.
+    This function filters the provided DataFrame to include only business-related entries,
+    then gets the rows corresponding to "Revenue", "Expense", and "Transfer to Savings" cash flow
+    types. "Expenses" and "Transfer to Savings" are made negative. The data is then aggregated
+    by date, and a cumulative waterfall chart is generated using Plotly.
 
     Args:
-        df (pd.DataFrame): The input DataFrame containing cash flow data with columns
+        df (pd.DataFrame): The input DataFrame containing cash flow data, including columns for
             ['date', 'business_related', 'cash_flow_type', 'amount', 'name'].
         file_path (str, optional): The path to save the HTML file. If not provided,
             the plot will not be saved.

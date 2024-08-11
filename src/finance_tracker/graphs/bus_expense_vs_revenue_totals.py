@@ -1,5 +1,4 @@
 import pandas as pd
-import plotly.express as px
 
 import finance_tracker.graphs.utils as graph_utils
 from finance_tracker.connectors.notion_to_pandas import get_full_df
@@ -7,12 +6,27 @@ from finance_tracker.connectors.notion_to_pandas import get_full_df
 
 def graph_business_related_expense_vs_revenue_totals(
     df: pd.DataFrame, write: bool = False
-):
+) -> None:
+    """Generates a bar chart of business-related expenses vs. revenue monthly totals and
+    optionally saves it as an HTML file.
+
+    This function filters the provided DataFrame to include only business-related entries,
+    then gets the rows corresponding to "Revenue", "Expense", and "Transfer to Savings" cash flow
+    types. It then creates a bar chart showing the monthly totals for each category, where
+    "Transfer to Savings" is visualized as an "Expense". The chart can either be displayed
+    interactively or saved as an HTML file.
+
+    Args:
+        df (pd.DataFrame): The input DataFrame containing cash flow data, including columns for
+            ['date', 'business_related', 'cash_flow_type', 'amount', 'name']
+        write (bool, optional): If True, saves the chart as an HTML file. If False, displays the
+            chart interactively. Defaults to False.
+    """
     df = graph_utils.preprocess_business_data(df)
 
     # Separate data for revenue and expense
+    # ("Transfer to Savings" will be visualized as an "Expense")
     revenue_df = df[df["cash_flow_type"] == "Revenue"]
-
     expense_df = df[df["cash_flow_type"] == "Expense"]
     transfer_to_savings_df = df[df["cash_flow_type"] == "Transfer to Savings"]
     transfer_to_savings_df.loc[:, "cash_flow_type"] = "Expense"
@@ -20,32 +34,11 @@ def graph_business_related_expense_vs_revenue_totals(
     # Create a combined DataFrame for plotting
     combined_df = pd.concat([revenue_df, expense_df, transfer_to_savings_df])
 
-    # Plot using Plotly Express
-    fig = px.bar(
-        combined_df,
-        x="month_year",
-        y="amount",
-        color="cash_flow_type",
-        color_discrete_map=graph_utils.CASH_FLOW_COLOR_MAP,
-        title="Business-Related Expense vs Revenue (Monthly Totals)",
-        hover_data={
-            "name": True,
-            "date": True,
-            "amount": True,
-            "month_year": False,
-            "cash_flow_type": False,
-        },
-        category_orders={"month_year": sorted(df["month_year"].unique())},
-        barmode="group",
+    fig = graph_utils.plot_basic_monthly_bar_chart(
+        combined_df, "Business-Related Expense vs Revenue (Monthly Totals)"
     )
 
-    fig.update_xaxes(type="category")
-    fig.update_layout(xaxis_tickangle=-45)
-
-    if write:
-        fig.write_html("chart.html")
-    else:
-        fig.show()
+    graph_utils.display_or_write_chart(fig, write)
 
 
 if __name__ == "__main__":
