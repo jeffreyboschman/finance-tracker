@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "finance-tracker"
+version = "0.1.0"
+description = "Application for embedding finance related graphs in Notion"
+requires-python=">=3.11,<3.12"
+dynamic = ["dependencies", "optional-dependencies"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+namespaces = true
+
+[tool.setuptools.dynamic]
+dependencies = {file = "requirements.txt"}
+
+[tool.setuptools.dynamic.optional-dependencies]
+dev = {file = ["requirements-dev.txt"]}
+
+[tool.black]
+line-length = 88
+
+[tool.isort]
+profile = "black"
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q"
+testpaths = ["src/tests"]
+
+[tool.bandit]
+targets = ["src"]
+exclude_dirs = ["src/tests"]
+
+[tool.pylint.messages_control]
+disable = ["C0114", "C0115", "C0116"]  # Disable missing module, class, and function docstrings
+
+[tool.pyright]
+include = ["src"]
+stubPath = ""

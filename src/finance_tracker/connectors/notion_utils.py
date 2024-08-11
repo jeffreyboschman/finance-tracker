@@ -1,19 +1,4 @@
-import requests
-import json
-from datetime import datetime, timezone
-import pandas as pd
-import matplotlib.pyplot as plt
-import plotly.express as px
-import plotly.graph_objects as go
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
-
-NOTION_TOKEN = os.getenv('NOTION_TOKEN')
-DATABASE_ID = os.getenv('DATABASE_ID')
-
-
+"""Utils for dealing with data from Notion API"""
 
 
 def extract_select_type_info(props: dict, column_name: str) -> str | None:
@@ -43,6 +28,7 @@ def extract_select_type_info(props: dict, column_name: str) -> str | None:
         selected_option = None
 
     return selected_option
+
 
 def extract_rollup_type_info(props: dict, column_name: str) -> str | None:
     """
@@ -74,6 +60,7 @@ def extract_rollup_type_info(props: dict, column_name: str) -> str | None:
 
     return rollup_info
 
+
 def extract_number_type_info(props: dict, column_name: str) -> str | None:
     """
     Extracts the number value from a Notion database row JSON
@@ -90,36 +77,3 @@ def extract_number_type_info(props: dict, column_name: str) -> str | None:
     """
     number_value = props.get(column_name, {}).get("number", None)
     return number_value
-
-def get_pages(num_pages=None):
-    """
-    If num_pages is None, get all pages, otherwise just the defined number.
-    """
-    
-    headers = {
-        "Authorization": "Bearer " + NOTION_TOKEN,
-        "Content-Type": "application/json",
-        "Notion-Version": "2022-06-28",
-    }
-
-    url = f"https://api.notion.com/v1/databases/{DATABASE_ID}/query"
-
-    get_all = num_pages is None
-    page_size = 100 if get_all else num_pages
-
-    payload = {"page_size": page_size}
-    response = requests.post(url, json=payload, headers=headers)
-    data = response.json()
-
-    # json_data = json.dumps(data, indent=4)
-    # print(json_data)
-
-    results = data["results"]
-    while data["has_more"] and get_all:
-        payload = {"page_size": page_size, "start_cursor": data["next_cursor"]}
-        url = f"https://api.notion.com/v1/databases/{DATABASE_ID}/query"
-        response = requests.post(url, json=payload, headers=headers)
-        data = response.json()
-        results.extend(data["results"])
-
-    return results
