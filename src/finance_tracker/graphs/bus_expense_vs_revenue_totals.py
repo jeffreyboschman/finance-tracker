@@ -13,8 +13,9 @@ def graph_business_related_expense_vs_revenue_totals(
     This function filters the provided DataFrame to include only business-related entries,
     then gets the rows corresponding to "Revenue", "Expense", and "Transfer to Savings" cash flow
     types. It then creates a bar chart showing the monthly totals for each category, where
-    "Transfer to Savings" is visualized as an "Expense". The chart can either be displayed
-    interactively or saved as an HTML file.
+    "Transfer to Savings" is visualized as an "Expense". An annotation displaying the total
+    'Profit' amount (after transferring to savings) is added to the chart. The chart can
+    either be displayed interactively or saved as an HTML file.
 
     Args:
         df (pd.DataFrame): The input DataFrame containing cash flow data, including columns for
@@ -36,6 +37,25 @@ def graph_business_related_expense_vs_revenue_totals(
 
     fig = graph_utils.plot_basic_monthly_bar_chart(
         combined_df, "Business-Related Expense vs Revenue (Monthly Totals)"
+    )
+
+    # Add an annotation displaying the total `profit`
+    total_revenue = revenue_df["amount"].sum()
+    total_expenses = expense_df["amount"].sum()
+    total_transfer_to_savings = transfer_to_savings_df["amount"].sum()
+    total_profit = total_revenue - total_expenses - total_transfer_to_savings
+
+    fig.add_annotation(
+        text=f"Total 'Profit' (after transferring to savings): ¥{total_profit:,.2f}",
+        xref="paper",
+        yref="paper",
+        x=1,
+        y=1,
+        showarrow=False,
+        font={"size": 12, "color": "black"},
+        bgcolor="white",
+        bordercolor="black",
+        borderwidth=1,
     )
 
     graph_utils.display_or_write_chart(fig, write)

@@ -12,9 +12,9 @@ def graph_business_related_transfer_to_savings_totals(
 
     This function filters the provided DataFrame to include only business-related entries with
     the "Transfer to Savings" cash flow type. It calculates the total accumulated savings and
-    creates a bar chart showing the monthly totals of these transfers. The chart can either
-    be displayed interactively or saved as an HTML file. An annotation displaying the total
-    accumulated amount is added to the chart.
+    creates a bar chart showing the monthly totals of these transfers. An annotation displaying
+    the total accumulated amount is added to the chart. The chart can either be displayed
+    interactively or saved as an HTML file.
 
     Args:
         df (pd.DataFrame): The input DataFrame containing cash flow data, including columns for
