@@ -1,22 +1,21 @@
+"""Getting data from Notion API"""
 
 import os
 
 import requests
-
 from dotenv import load_dotenv
 
 load_dotenv()
 
-NOTION_TOKEN = os.getenv('NOTION_TOKEN')
-DATABASE_ID = os.getenv('DATABASE_ID')
-
+NOTION_TOKEN = os.getenv("NOTION_TOKEN")
+DATABASE_ID = os.getenv("DATABASE_ID")
 
 
 def get_pages(num_pages: int | None = None):
     """
     If num_pages is None, get all pages, otherwise just the defined number.
     """
-    
+
     headers = {
         "Authorization": "Bearer " + NOTION_TOKEN,
         "Content-Type": "application/json",

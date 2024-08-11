@@ -7,32 +7,27 @@ from finance_tracker.connectors.notion_api import get_database
 from finance_tracker.connectors.notion_to_pandas import get_pandas_df
 
 
-def graph_business_related_expense_vs_revenue_totals(
+def graph_business_related_transfer_to_savings_totals(
     df: pd.DataFrame, write: bool = False
 ):
+    """Good one"""
     df = df.copy()
     df = df[(df["business_related"] == "Business-Related")]
     df["date"] = pd.to_datetime(df["date"])
     df["month_year"] = df["date"].dt.to_period("M").astype(str)
 
-    # Separate data for revenue and expense
-    revenue_df = df[df["cash_flow_type"] == "Revenue"]
+    savings_df = df[df["cash_flow_type"] == "Transfer to Savings"]
 
-    expense_df = df[df["cash_flow_type"] == "Expense"]
-    transfer_to_savings_df = df[df["cash_flow_type"] == "Transfer to Savings"]
-    transfer_to_savings_df.loc[:, "cash_flow_type"] = "Expense"
-
-    # Create a combined DataFrame for plotting
-    combined_df = pd.concat([revenue_df, expense_df, transfer_to_savings_df])
+    total_accumulated = savings_df["amount"].sum()
 
     # Plot using Plotly Express
     fig = px.bar(
-        combined_df,
+        savings_df,
         x="month_year",
         y="amount",
         color="cash_flow_type",
         color_discrete_map=graph_utils.CASH_FLOW_COLOR_MAP,
-        title="Business-Related Expense vs Revenue (Monthly Totals)",
+        title="Business-Related Tranfer to Savings (Monthly Totals)",
         hover_data={
             "name": True,
             "date": True,
@@ -42,6 +37,19 @@ def graph_business_related_expense_vs_revenue_totals(
         },
         category_orders={"month_year": sorted(df["month_year"].unique())},
         barmode="group",
+    )
+
+    fig.add_annotation(
+        text=f"Total Accumulated: ¥{total_accumulated:,.2f}",
+        xref="paper",
+        yref="paper",
+        x=1,
+        y=1,
+        showarrow=False,
+        font=dict(size=12, color="black"),
+        bgcolor="white",
+        bordercolor="black",
+        borderwidth=1,
     )
 
     fig.update_xaxes(type="category")
@@ -57,4 +65,4 @@ if __name__ == "__main__":
     load_dotenv()
     notion_db = get_database()
     df = get_pandas_df(notion_db)
-    graph_business_related_expense_vs_revenue_totals(df, write=False)
+    graph_business_related_transfer_to_savings_totals(df, write=False)

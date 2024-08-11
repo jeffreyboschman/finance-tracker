@@ -1,13 +1,4 @@
-import requests
-import json
-from datetime import datetime, timezone
-import pandas as pd
-import matplotlib.pyplot as plt
-import plotly.express as px
-import plotly.graph_objects as go
-import os
-
-
+"""Utils for dealing with data from Notion API"""
 
 
 def extract_select_type_info(props: dict, column_name: str) -> str | None:
@@ -38,6 +29,7 @@ def extract_select_type_info(props: dict, column_name: str) -> str | None:
 
     return selected_option
 
+
 def extract_rollup_type_info(props: dict, column_name: str) -> str | None:
     """
     Extracts the rollup information from a Notion database row dictionary
@@ -67,6 +59,7 @@ def extract_rollup_type_info(props: dict, column_name: str) -> str | None:
                     rollup_info.append(relation_item.get("id"))
 
     return rollup_info
+
 
 def extract_number_type_info(props: dict, column_name: str) -> str | None:
     """
