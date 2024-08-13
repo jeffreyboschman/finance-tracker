@@ -5,8 +5,10 @@ import finance_tracker.graphs.utils as graph_utils
 from finance_tracker.connectors.notion_to_pandas import get_full_df
 
 
-def graph_business_related_expense_vs_revenue_vs_savings_waterfall(
-    df: pd.DataFrame, write: bool = False
+def graph_business_related_expense_vs_revenue_waterfall(
+    df: pd.DataFrame,
+    write: bool = False,
+    chart_filename: str = "chart.html",
 ) -> None:
     """
     Generates a waterfall graph of business-related expenses versus revenues and
@@ -20,8 +22,10 @@ def graph_business_related_expense_vs_revenue_vs_savings_waterfall(
     Args:
         df (pd.DataFrame): The input DataFrame containing cash flow data, including columns for
             ['date', 'business_related', 'cash_flow_type', 'amount', 'name'].
-        file_path (str, optional): The path to save the HTML file. If not provided,
-            the plot will not be saved.
+        write (bool, optional): If True, saves the chart as an HTML file. If False, displays the
+            chart interactively. Defaults to False.
+        chart_filename (str, optional): The name of the HTML file to write to. Defaults to
+            'chart.html'.
 
     Returns:
         None: This function displays a Plotly waterfall graph and optionally saves it as an
@@ -94,12 +98,9 @@ def graph_business_related_expense_vs_revenue_vs_savings_waterfall(
     # if write:
     #     pio.write_html(fig, "chart.html", auto_open=False)
 
-    if write:
-        fig.write_html("chart.html")
-    else:
-        fig.show()
+    graph_utils.display_or_write_chart(fig, write, chart_filename)
 
 
 if __name__ == "__main__":
     full_df = get_full_df()
-    graph_business_related_expense_vs_revenue_vs_savings_waterfall(full_df, write=False)
+    graph_business_related_expense_vs_revenue_waterfall(full_df, write=False)

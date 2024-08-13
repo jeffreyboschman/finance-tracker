@@ -5,7 +5,9 @@ from finance_tracker.connectors.notion_to_pandas import get_full_df
 
 
 def graph_business_related_transfer_to_savings_totals(
-    df: pd.DataFrame, write: bool = False
+    df: pd.DataFrame,
+    write: bool = False,
+    chart_filename: str = "chart.html",
 ) -> None:
     """Generates a bar chart of business-related transfers to savings monthly totals and
     optionally saves it as an HTML file
@@ -21,6 +23,8 @@ def graph_business_related_transfer_to_savings_totals(
             ['date', 'business_related', 'cash_flow_type', 'amount', 'name']
         write (bool, optional): If True, saves the chart as an HTML file. If False, displays the
             chart interactively. Defaults to False.
+        chart_filename (str, optional): The name of the HTML file to write to. Defaults to
+            'chart.html'.
     """
     df = graph_utils.preprocess_business_data(df)
 
@@ -44,7 +48,7 @@ def graph_business_related_transfer_to_savings_totals(
         bordercolor="black",
         borderwidth=1,
     )
-    graph_utils.display_or_write_chart(fig, write)
+    graph_utils.display_or_write_chart(fig, write, chart_filename)
 
 
 if __name__ == "__main__":
