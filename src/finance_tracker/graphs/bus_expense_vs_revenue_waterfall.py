@@ -103,4 +103,4 @@ def graph_business_related_expense_vs_revenue_waterfall(
 
 if __name__ == "__main__":
     full_df = get_full_df()
-    graph_business_related_expense_vs_revenue_vs_savings_waterfall(full_df, write=False)
+    graph_business_related_expense_vs_revenue_waterfall(full_df, write=False)
