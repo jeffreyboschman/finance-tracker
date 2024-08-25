@@ -22,6 +22,23 @@ CASH_FLOW_PATTERN_MAP = {
     "Bank Transfer In": "#529CCA",
 }
 
+# Select LM (RGB) colors from 
+# https://optemization.notion.site/b58409d4a92444368cbad42b60d9ea55?v=d05b18c8bb8942c5b418dda9e0a060ff
+MAIN_FINANCE_CATEGORIES_COLOR_MAP = {
+    "Food": "rgba(255,0,26,0.2)",  # red
+    "Entertainment": "rgba(0,120,223,0.2)",  # blue
+    "Housing": "rgba(245,93,0,0.2)",  # orange
+    "Transportation": "rgba(103,36,222,0.2)",  # purple
+    "Family and Friends": "rgba(0,120,223,0.2)",  # blue
+    "Government": "rgba(206,205,202,0.5)",  # black/white
+    "Finance": "rgba(0,135,107,0.2)",  # green
+    "Health and Wellness": "rgba(255,220,73,0.5)",  # yellow
+    "Utilities": "rgba(155,154,151,0.4)",  # grey
+    "Investments": "rgba(221,0,129,0.2)",  # pink
+    "Career Related": "rgba(140,46,0,0.2)",  # brown
+    "Digital Services/Products/Tools": "rgba(206,205,202,0.5)",  # black/white
+}
+
 
 def get_days_in_month(year: int, month: int) -> list[int]:
     """Get a list of all the days in a given month.
