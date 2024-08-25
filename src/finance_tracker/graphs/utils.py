@@ -22,7 +22,7 @@ CASH_FLOW_PATTERN_MAP = {
     "Bank Transfer In": "#529CCA",
 }
 
-# Select LM (RGB) colors from 
+# Select LM (RGB) colors from
 # https://optemization.notion.site/b58409d4a92444368cbad42b60d9ea55?v=d05b18c8bb8942c5b418dda9e0a060ff
 MAIN_FINANCE_CATEGORIES_COLOR_MAP = {
     "Food": "rgba(255,0,26,0.2)",  # red
