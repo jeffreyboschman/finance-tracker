@@ -8,7 +8,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from werkzeug.utils import secure_filename
 
-from finance_tracker.connectors.notion_to_pandas import get_full_df
+from finance_tracker.connectors.notion_to_pandas import get_finance_tracker_df
 from finance_tracker.graphs.bus_expense_vs_revenue_totals import (
     graph_business_related_expense_vs_revenue_totals,
 )
@@ -50,7 +50,7 @@ def generate_and_serve_chart(
 
     filename = secure_filename(filename)
 
-    full_df = get_full_df()
+    full_df = get_finance_tracker_df()
     chart_path = os.path.join(OUTPUT_DIR, filename)
     chart_func(full_df, write=True, chart_filename=chart_path)
     logging.info("Serving chart: %s", chart_path)
