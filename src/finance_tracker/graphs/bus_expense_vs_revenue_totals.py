@@ -1,7 +1,7 @@
 import pandas as pd
 
 import finance_tracker.graphs.utils as graph_utils
-from finance_tracker.connectors.notion_to_pandas import get_full_df
+from finance_tracker.connectors.notion_to_pandas import get_finance_tracker_df
 
 
 def graph_business_related_expense_vs_revenue_totals(
@@ -66,5 +66,5 @@ def graph_business_related_expense_vs_revenue_totals(
 
 
 if __name__ == "__main__":
-    full_df = get_full_df()
+    full_df = get_finance_tracker_df()
     graph_business_related_expense_vs_revenue_totals(full_df, write=False)
