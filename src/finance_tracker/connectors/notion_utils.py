@@ -1,8 +1,10 @@
 """Utils for dealing with data from Notion API"""
 
 from finance_tracker.connectors.notion_api import get_database
+from finance_tracker.utils import utils
 
 
+@utils.cache_result(arg_name="database_id")
 def get_page_name_mapping(database_id: str) -> dict:
     """
     Fetches all pages from the specified Notion database and creates a dictionary mapping
