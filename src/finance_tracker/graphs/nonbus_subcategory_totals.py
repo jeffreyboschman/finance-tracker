@@ -76,8 +76,6 @@ def _filter_and_prepare_data(df: pd.DataFrame) -> pd.DataFrame:
         categories=grouped_df["sub_category"].unique(),
         ordered=True,
     )
-    print(grouped_df.head(40))
-    print("\n\n")
 
     return grouped_df
 
