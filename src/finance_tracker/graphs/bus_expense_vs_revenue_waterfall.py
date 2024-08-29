@@ -7,12 +7,9 @@ from finance_tracker.connectors.notion_to_pandas import get_finance_tracker_df
 
 def graph_business_related_expense_vs_revenue_waterfall(
     df: pd.DataFrame,
-    write: bool = False,
-    chart_filename: str = "chart.html",
-) -> None:
+) -> go.Figure:
     """
-    Generates a waterfall graph of business-related expenses versus revenues and
-    optionally saves it as an HTML file.
+    Generates a waterfall graph of business-related expenses versus revenues.
 
     This function filters the provided DataFrame to include only business-related entries,
     then gets the rows corresponding to "Revenue", "Expense", and "Transfer to Savings" cash flow
@@ -22,14 +19,9 @@ def graph_business_related_expense_vs_revenue_waterfall(
     Args:
         df (pd.DataFrame): The input DataFrame containing cash flow data, including columns for
             ['date', 'business_related', 'cash_flow_type', 'amount', 'name'].
-        write (bool, optional): If True, saves the chart as an HTML file. If False, displays the
-            chart interactively. Defaults to False.
-        chart_filename (str, optional): The name of the HTML file to write to. Defaults to
-            'chart.html'.
 
     Returns:
-        None: This function displays a Plotly waterfall graph and optionally saves it as an
-             HTML file.
+        go.Figure: A Plotly Figure object representing the waterfall chart.
 
     Raises:
         ValueError: If the 'date' column cannot be converted to datetime format.
@@ -94,13 +86,4 @@ def graph_business_related_expense_vs_revenue_waterfall(
         yaxis_title="Amount (¥)",
         xaxis_tickangle=-45,
     )
-
-    # if write:
-    #     pio.write_html(fig, "chart.html", auto_open=False)
-
-    graph_utils.display_or_write_chart(fig, write, chart_filename)
-
-
-if __name__ == "__main__":
-    full_df = get_finance_tracker_df()
-    graph_business_related_expense_vs_revenue_waterfall(full_df, write=False)
+    return fig

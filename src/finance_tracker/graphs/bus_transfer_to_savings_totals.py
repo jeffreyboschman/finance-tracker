@@ -1,4 +1,5 @@
 import pandas as pd
+import plotly.graph_objects as go
 
 import finance_tracker.graphs.utils as graph_utils
 from finance_tracker.connectors.notion_to_pandas import get_finance_tracker_df
@@ -6,25 +7,20 @@ from finance_tracker.connectors.notion_to_pandas import get_finance_tracker_df
 
 def graph_business_related_transfer_to_savings_totals(
     df: pd.DataFrame,
-    write: bool = False,
-    chart_filename: str = "chart.html",
-) -> None:
-    """Generates a bar chart of business-related transfers to savings monthly totals and
-    optionally saves it as an HTML file
+) -> go.Figure:
+    """Generates a bar chart of business-related transfers to savings monthly totals.
 
     This function filters the provided DataFrame to include only business-related entries with
     the "Transfer to Savings" cash flow type. It calculates the total accumulated savings and
     creates a bar chart showing the monthly totals of these transfers. An annotation displaying
-    the total accumulated amount is added to the chart. The chart can either be displayed
-    interactively or saved as an HTML file.
+    the total accumulated amount is added to the chart.
 
     Args:
         df (pd.DataFrame): The input DataFrame containing cash flow data, including columns for
             ['date', 'business_related', 'cash_flow_type', 'amount', 'name']
-        write (bool, optional): If True, saves the chart as an HTML file. If False, displays the
-            chart interactively. Defaults to False.
-        chart_filename (str, optional): The name of the HTML file to write to. Defaults to
-            'chart.html'.
+    Returns:
+        go.Figure: A Plotly Figure object representing the bar chart of business-related transfers
+        to savings monthly totals, with an annotation showing the total accumulated amount.
     """
     df = graph_utils.preprocess_business_data(df)
 
@@ -48,9 +44,4 @@ def graph_business_related_transfer_to_savings_totals(
         bordercolor="black",
         borderwidth=1,
     )
-    graph_utils.display_or_write_chart(fig, write, chart_filename)
-
-
-if __name__ == "__main__":
-    full_df = get_finance_tracker_df()
-    graph_business_related_transfer_to_savings_totals(full_df, write=False)
+    return fig

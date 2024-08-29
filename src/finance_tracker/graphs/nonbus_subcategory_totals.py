@@ -1,7 +1,6 @@
-import argparse
-
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 
 import finance_tracker.graphs.utils as graph_utils
 from finance_tracker.connectors.notion_to_pandas import get_finance_tracker_df
@@ -80,28 +79,21 @@ def _filter_and_prepare_data(df: pd.DataFrame) -> pd.DataFrame:
     return grouped_df
 
 
-def _create_stacked_bar_chart(
-    grouped_df: pd.DataFrame, write: bool, chart_filename: str
-) -> None:
+def _create_stacked_bar_chart(grouped_df: pd.DataFrame) -> go.Figure:
     """
-    Creates and displays or writes a stacked bar chart of sub-category totals.
+    Creates a plotly stacked bar chart of sub-category totals.
 
     This function generates a stacked bar chart showing the total amount spent in each
     sub-category per month. The bars are colored according to the main category of each
     sub-category. Annotations are added above each bar to indicate the total sum of all
-    expenses for that month. The chart can either be displayed interactively or saved as
-    an HTML file.
+    expenses for that month.
 
     Args:
         grouped_df (pd.DataFrame): A grouped DataFrame containing columns for 'month_year',
             'main_category', 'sub_category', 'amount', 'main_category_sum', 'amount_monthly_total',
             and 'color'.
-        write (bool): If True, saves the chart as an HTML file. If False, displays the chart
-            interactively.
-        chart_filename (str): The name of the HTML file to write to, if `write` is True.
-
     Returns:
-        None
+        go.Figure: A Plotly Figure object representing the bar chart.
     """
     fig = px.bar(
         grouped_df,
@@ -143,31 +135,26 @@ def _create_stacked_bar_chart(
         )
 
     fig.update_layout(xaxis={"showgrid": False}, yaxis={"showgrid": False})
-    graph_utils.display_or_write_chart(fig, write, chart_filename)
+    return fig
 
 
-def _create_percent_stacked_bar_chart(
-    grouped_df: pd.DataFrame, write: bool, chart_filename: str
-) -> None:
+def _create_percent_stacked_bar_chart(grouped_df: pd.DataFrame) -> go.Figure:
     """
-    Creates and displays or writes a percent-stacked bar chart of sub-category percentages.
+    Creates a plotly percent-stacked bar chart of sub-category percentages.
 
     This function generates a percent-stacked bar chart showing the percentage of the total
     amount spent in each sub-category per month. The bars are colored according to the main
     category of each sub-category. Hover data includes the actual amount spent in each sub-category,
     the total amount spent in the associated main category, and the percentage of the total spent
-    in the main category. The chart can either be displayed interactively or saved as an HTML file.
+    in the main category.
 
     Args:
         grouped_df (pd.DataFrame): A grouped DataFrame containing columns for 'month_year',
             'main_category', 'sub_category', 'amount', 'main_category_sum', 'amount_monthly_total',
             'percentage', 'main_category_percentage', and 'color'.
-        write (bool): If True, saves the chart as an HTML file. If False, displays the chart
-            interactively.
-        chart_filename (str): The name of the HTML file to write to, if `write` is True.
 
     Returns:
-        None
+        go.Figure: A Plotly Figure object representing the bar chart.
     """
     # Calculate the percentage of total amount for each sub-category
     grouped_df["percentage"] = (
@@ -230,14 +217,12 @@ def _create_percent_stacked_bar_chart(
     fig.update_layout(
         xaxis={"showgrid": False}, yaxis={"showgrid": False}, yaxis_tickformat="%"
     )
-    graph_utils.display_or_write_chart(fig, write, chart_filename)
+    return fig
 
 
 def graph_nonbusiness_related_subcategory_totals(
     df: pd.DataFrame,
-    write: bool = False,
-    chart_filename: str = "chart.html",
-) -> None:
+) -> go.Figure:
     """
     Generates a stacked bar chart of non-business-related expense totals by sub-category.
 
@@ -245,30 +230,23 @@ def graph_nonbusiness_related_subcategory_totals(
     groups the data by month and sub-category, and creates a stacked bar chart displaying the total
     amount spent in each sub-category for each month. The bars are colored according to the main
     category of each sub-category, and an annotation showing the total sum of all expenses for each
-    month is added above the corresponding bar. The chart can either be displayed interactively or
-    saved as an HTML file.
+    month is added above the corresponding bar.
 
     Args:
         df (pd.DataFrame): The input DataFrame containing financial data with at least the
             following columns: ['date', 'business_related', 'cash_flow_type', 'amount',
             'main_category', 'sub_category'].
-        write (bool, optional): If True, saves the chart as an HTML file. If False, displays the
-            chart interactively. Defaults to False.
-        chart_filename (str, optional): The name of the HTML file to write to. Defaults to
-            'chart.html'.
 
     Returns:
-        None
+        go.Figure: A Plotly Figure object representing the bar chart.
     """
     grouped_df = _filter_and_prepare_data(df)
-    _create_stacked_bar_chart(grouped_df, write, chart_filename)
+    return _create_stacked_bar_chart(grouped_df)
 
 
 def graph_nonbusiness_related_subcategory_percentages(
     df: pd.DataFrame,
-    write: bool = False,
-    chart_filename: str = "percent_chart.html",
-) -> None:
+) -> go.Figure:
     """
     Generates a percent-stacked bar chart of non-business-related expense totals by sub-category.
 
@@ -282,56 +260,9 @@ def graph_nonbusiness_related_subcategory_percentages(
         df (pd.DataFrame): The input DataFrame containing financial data with at least the
             following columns: ['date', 'business_related', 'cash_flow_type', 'amount',
             'main_category', 'sub_category'].
-        write (bool, optional): If True, saves the chart as an HTML file. If False, displays the
-            chart interactively. Defaults to False.
-        chart_filename (str, optional): The name of the HTML file to write to. Defaults to
-            'percent_chart.html'.
 
     Returns:
-        None
+        go.Figure: A Plotly Figure object representing the bar chart.
     """
     grouped_df = _filter_and_prepare_data(df)
-    _create_percent_stacked_bar_chart(grouped_df, write, chart_filename)
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Generate financial graphs based on expenses."
-    )
-    parser.add_argument(
-        "--chart_type",
-        type=str,
-        choices=["stacked", "percent"],
-        default="stacked",
-        help="Type of chart to generate: 'stacked' for a regular stacked bar chart, 'percent' for"
-        "a percent-stacked bar chart.",
-    )
-    parser.add_argument(
-        "--write",
-        action="store_true",
-        help="If specified, the chart will be saved as an HTML file. Otherwise, it will be"
-        "displayed interactively.",
-    )
-    parser.add_argument(
-        "--filename",
-        type=str,
-        default="chart.html",
-        help="Filename for the output HTML file if --write is specified. Defaults to 'chart.html'.",
-    )
-
-    args = parser.parse_args()
-
-    full_df = get_finance_tracker_df()
-
-    if args.chart_type == "stacked":
-        graph_nonbusiness_related_subcategory_totals(
-            df=full_df,
-            write=args.write,
-            chart_filename=args.filename,
-        )
-    elif args.chart_type == "percent":
-        graph_nonbusiness_related_subcategory_percentages(
-            df=full_df,
-            write=args.write,
-            chart_filename=args.filename,
-        )
+    return _create_percent_stacked_bar_chart(grouped_df)
