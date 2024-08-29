@@ -1,54 +1,68 @@
+import asyncio
 import functools
-import hashlib
-import json
+import logging
+import time
+from typing import Any, Callable, Coroutine
+
+logging.basicConfig(level=logging.INFO)
+_logger = logging.getLogger(__name__)
 
 
-def cache_result(arg_name: str):
-    """
-    Decorator to cache the result of a function based on the specified argument's data.
+def timing_decorator(func: Callable[..., Any]) -> Callable[..., Any]:
+    """A decorator that logs the execution time of the function it wraps,
+    preserving its sync or async nature.
+
+    This decorator can be applied to both synchronous and asynchronous functions.
+    It measures the execution time of the function and logs it using the Python
+    logging module. The execution time is logged at the INFO level.
 
     Args:
-        arg_name (str): The name of the argument to use as a cache key. If None, raise
-            an error.
+        func: The function to be wrapped by the decorator.
+
+    Returns:
+        The wrapped function, which logs its execution time when called.
     """
-    cache = {}
 
-    def decorator(func):
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            # Determine which argument to use for the cache key
-            if arg_name:
-                if arg_name in kwargs:
-                    key = kwargs[arg_name]
-                else:
-                    arg_names = func.__code__.co_varnames
-                    key = args[arg_names.index(arg_name)]
+    @functools.wraps(func)
+    def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
+        start_time = time.perf_counter()
+        result = func(*args, **kwargs)
+        end_time = time.perf_counter()
 
-                print(f"Using {key} as the inside cache key")
-            else:
-                raise ValueError(
-                    "Must provide an arg_name to be used as the cache key."
-                )
+        if args and hasattr(args[0], "__class__"):
+            class_name = args[0].__class__.__name__
+            _logger.info(
+                "%s.%s executed in %.4f seconds",
+                class_name,
+                func.__name__,
+                end_time - start_time,
+            )
+        else:
+            _logger.info(
+                "%s executed in %.4f seconds", func.__name__, end_time - start_time
+            )
+        return result
 
-            # Fetch or generate the data
-            result = func(*args, **kwargs)
+    @functools.wraps(func)
+    async def async_wrapper(*args: Any, **kwargs: Any) -> Coroutine:
+        start_time = time.perf_counter()
+        result = await func(*args, **kwargs)
+        end_time = time.perf_counter()
 
-            data_hash = hashlib.md5(
-                json.dumps(key, sort_keys=True).encode()
-            ).hexdigest()
+        if args and hasattr(args[0], "__class__"):
+            class_name = args[0].__class__.__name__
+            _logger.info(
+                "%s.%s executed in %.4f seconds",
+                class_name,
+                func.__name__,
+                end_time - start_time,
+            )
+        else:
+            _logger.info(
+                "%s executed in %.4f seconds", func.__name__, end_time - start_time
+            )
+        return result
 
-            # Check if the data has changed
-            if key in cache and cache[key]["hash"] == data_hash:
-                # Return the cached result if the data hasn't changed
-                print("Data has not changed. Using cached data.")
-
-                return cache[key]["result"]
-
-            # Otherwise, update the cache with the new data
-            cache[key] = {"hash": data_hash, "result": result}
-            print(f"Updating cache for key: {key}")
-            return result
-
-        return wrapper
-
-    return decorator
+    if asyncio.iscoroutinefunction(func):
+        return async_wrapper
+    return sync_wrapper
