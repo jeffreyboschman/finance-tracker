@@ -1,5 +1,6 @@
 """For converting data from Notion API into Pandas DataFrames"""
 
+import logging
 import os
 from datetime import datetime
 
@@ -8,15 +9,18 @@ from dotenv import load_dotenv
 
 from finance_tracker.connectors import notion_utils
 from finance_tracker.connectors.notion_api import get_database
-from finance_tracker.utils import utils
+from finance_tracker.utils.utils import timing_decorator
 
 FINANCE_TRACKER_DATABASE_ID = os.getenv("FINANCE_TRACKER_DATABASE_ID")
 SUB_CATEGORIES_DATABASE_ID = os.getenv("SUB_CATEGORIES_DATABASE_ID")
 MAIN_CATEGORIES_DATABASE_ID = os.getenv("MAIN_CATEGORIES_DATABASE_ID")
 
+logging.basicConfig(level=logging.INFO)
+_logger = logging.getLogger(__name__)
 
-@utils.cache_result(arg_name="cache_key")
-def get_sub_to_main_categories_mapping(cache_key: str = "sub_to_main"):
+
+@timing_decorator
+def get_sub_to_main_categories_mapping():
     """
     Creates a mapping of sub-categories to their corresponding main categories.
 
@@ -28,7 +32,6 @@ def get_sub_to_main_categories_mapping(cache_key: str = "sub_to_main"):
         dict: A dictionary where the keys are sub-category names and the values are the
             corresponding main category names.
     """
-    print(f"Using {cache_key} as cache key")
     pages = get_database(SUB_CATEGORIES_DATABASE_ID)
 
     maincategories_page_name_mapping = notion_utils.get_page_name_mapping(
@@ -60,10 +63,17 @@ def get_sub_to_main_categories_mapping(cache_key: str = "sub_to_main"):
     return get_sub_to_main_categories_mapping_dict
 
 
-@utils.cache_result(arg_name="cache_key")
-def get_finance_tracker_df(cache_key: str = "finance_tracker_df"):
+@timing_decorator
+def get_finance_tracker_pages():
+    pages = get_database(FINANCE_TRACKER_DATABASE_ID)
+    return pages
+
+
+@timing_decorator
+def get_finance_tracker_df():
     """
-    Fetches data from the finance tracker Notion database and converts it into a Pandas DataFrame.
+    Fetches data from the finance tracker Notion database and converts it into a Pandas DataFrame,
+    using cached data if it hasn't changed.
 
     The function retrieves financial data, including the name, date, amount, account, cash flow
     type, and category information. It maps sub-categories to main categories and organizes the
@@ -74,8 +84,6 @@ def get_finance_tracker_df(cache_key: str = "finance_tracker_df"):
         ['name', 'date', 'amount', 'account', 'cash_flow_type', 'business_related',
         'sub_category', 'main_category'].
     """
-    print(f"Using {cache_key} as cache key")
-
     load_dotenv()
 
     subcategories_page_name_mapping = notion_utils.get_page_name_mapping(
@@ -83,7 +91,7 @@ def get_finance_tracker_df(cache_key: str = "finance_tracker_df"):
     )
     get_sub_to_main_categories_mapping_dict = get_sub_to_main_categories_mapping()
 
-    pages = get_database(FINANCE_TRACKER_DATABASE_ID)
+    pages = get_finance_tracker_pages()
 
     page_dicts = []
     for page in pages:
