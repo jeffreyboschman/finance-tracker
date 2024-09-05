@@ -40,25 +40,28 @@ def get_sub_to_main_categories_mapping():
 
     get_sub_to_main_categories_mapping_dict = {}
     for page in pages:
-        # page_id = page["id"]
-        props = page["properties"]
-        if not props:
-            pass
+        try:
+            # page_id = page["id"]
+            props = page["properties"]
+            if not props:
+                pass
 
-        name = props["Name"]["title"][0]["text"]["content"]
-        main_category_info = notion_utils.extract_relation_type_info(
-            props, "Main Finance Categories"
-        )
-        if main_category_info:
-            main_category_id = main_category_info[0].get("id", None)
-            main_category_name = maincategories_page_name_mapping.get(
-                main_category_id, None
+            name = props["Name"]["title"][0]["text"]["content"]
+            main_category_info = notion_utils.extract_relation_type_info(
+                props, "Main Finance Categories"
             )
-        else:
-            main_category_id = None
-            main_category_name = None
+            if main_category_info:
+                main_category_id = main_category_info[0].get("id", None)
+                main_category_name = maincategories_page_name_mapping.get(
+                    main_category_id, None
+                )
+            else:
+                main_category_id = None
+                main_category_name = None
 
-        get_sub_to_main_categories_mapping_dict[name] = main_category_name
+            get_sub_to_main_categories_mapping_dict[name] = main_category_name
+        except:
+            _logger.debug("Trouble adding page: %s", page)
 
     return get_sub_to_main_categories_mapping_dict
 
@@ -95,40 +98,45 @@ def get_finance_tracker_df():
 
     page_dicts = []
     for page in pages:
-        page_dict = {}
+        try:
+            page_dict = {}
 
-        # page_id = page["id"]
-        props = page["properties"]
-        if not props:
-            pass
+            # page_id = page["id"]
+            props = page["properties"]
+            if not props:
+                pass
 
-        # Get all properties for each page and put in page_dict
-        page_dict["name"] = props["Name"]["title"][0]["text"]["content"]
-        date = props["Date"]["date"]["start"]
-        page_dict["date"] = datetime.fromisoformat(date)
-        page_dict["amount"] = notion_utils.extract_number_type_info(props, "Amount")
-        page_dict["account"] = notion_utils.extract_select_type_info(props, "Account")
-        page_dict["cash_flow_type"] = notion_utils.extract_select_type_info(
-            props, "Cash Flow Type"
-        )
-        page_dict["business_related"] = notion_utils.extract_select_type_info(
-            props, "Business Related?"
-        )
-        sub_category_info = notion_utils.extract_relation_type_info(
-            props, "Sub Category"
-        )
-        if sub_category_info:
-            sub_category_id = sub_category_info[0].get("id", None)
-            sub_category_name = subcategories_page_name_mapping.get(
-                sub_category_id, None
+            # Get all properties for each page and put in page_dict
+            page_dict["name"] = props["Name"]["title"][0]["text"]["content"]
+            date = props["Date"]["date"]["start"]
+            page_dict["date"] = datetime.fromisoformat(date)
+            page_dict["amount"] = notion_utils.extract_number_type_info(props, "Amount")
+            page_dict["account"] = notion_utils.extract_select_type_info(
+                props, "Account"
             )
-        else:
-            sub_category_name = None
-        page_dict["sub_category"] = sub_category_name
-        page_dict["main_category"] = get_sub_to_main_categories_mapping_dict.get(
-            sub_category_name, None
-        )
-        page_dicts.append(page_dict)
+            page_dict["cash_flow_type"] = notion_utils.extract_select_type_info(
+                props, "Cash Flow Type"
+            )
+            page_dict["business_related"] = notion_utils.extract_select_type_info(
+                props, "Business Related?"
+            )
+            sub_category_info = notion_utils.extract_relation_type_info(
+                props, "Sub Category"
+            )
+            if sub_category_info:
+                sub_category_id = sub_category_info[0].get("id", None)
+                sub_category_name = subcategories_page_name_mapping.get(
+                    sub_category_id, None
+                )
+            else:
+                sub_category_name = None
+            page_dict["sub_category"] = sub_category_name
+            page_dict["main_category"] = get_sub_to_main_categories_mapping_dict.get(
+                sub_category_name, None
+            )
+            page_dicts.append(page_dict)
+        except:
+            _logger.debug("Trouble adding page: %s", page)
 
     df = pd.DataFrame.from_dict(page_dicts)
 
