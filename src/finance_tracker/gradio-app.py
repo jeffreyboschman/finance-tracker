@@ -8,18 +8,17 @@ import plotly.graph_objects as go
 from dotenv import load_dotenv
 
 from finance_tracker.connectors.notion_to_pandas import get_finance_tracker_df
-from finance_tracker.graphs.bus_expense_vs_revenue_totals import (
-    graph_business_related_expense_vs_revenue_totals,
+from finance_tracker.graphs.revenue_vs_expense_totals import (
+    graph_business_revenue_vs_expense_and_tax_totals,
+    graph_personal_revenue_vs_expense_and_saving_totals,
 )
-from finance_tracker.graphs.bus_expense_vs_revenue_waterfall import (
-    graph_business_related_expense_vs_revenue_waterfall,
-)
-from finance_tracker.graphs.bus_transfer_to_savings_totals import (
-    graph_business_related_transfer_to_savings_totals,
-)
-from finance_tracker.graphs.nonbus_subcategory_totals import (
-    graph_nonbusiness_related_subcategory_percentages,
-    graph_nonbusiness_related_subcategory_totals,
+from finance_tracker.graphs.subcategory import (
+    graph_business_expenses_and_taxes_by_subcategory,
+    graph_business_expenses_by_subcategory,
+    graph_business_revenue_by_subcategory,
+    graph_personal_expenses_and_savings_by_subcategory,
+    graph_personal_expenses_by_subcategory,
+    graph_personal_revenue_by_subcategory,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -75,29 +74,47 @@ def generate_chart(chart_func) -> go.Figure:
     return fig
 
 
-def display_expense_vs_revenue_totals() -> go.Figure:
-    """Displays the business-related expense vs. revenue totals chart."""
-    return generate_chart(graph_business_related_expense_vs_revenue_totals)
+# Revenue vs Expense totals
 
 
-def display_expense_vs_revenue_waterfall() -> go.Figure:
-    """Displays the business-related expense vs. revenue vs. savings waterfall chart."""
-    return generate_chart(graph_business_related_expense_vs_revenue_waterfall)
+def display_business_revenue_vs_expense_and_tax_totals() -> go.Figure:
+    """Displays the business expense vs. revenue totals chart."""
+    return generate_chart(graph_business_revenue_vs_expense_and_tax_totals)
 
 
-def display_transfer_to_savings_totals() -> go.Figure:
-    """Displays the business-related transfer to savings totals chart."""
-    return generate_chart(graph_business_related_transfer_to_savings_totals)
+def display_personal_revenue_vs_expense_and_saving_totals() -> go.Figure:
+    """Displays the personal expense vs. revenue totals chart."""
+    return generate_chart(graph_personal_revenue_vs_expense_and_saving_totals)
 
 
-def display_nonbusiness_expense_categories() -> go.Figure:
-    """Displays the business-related transfer to savings totals chart."""
-    return generate_chart(graph_nonbusiness_related_subcategory_totals)
+# Business by category
 
 
-def display_nonbusiness_expense_category_percentages() -> go.Figure:
-    """Displays the business-related transfer to savings percentages chart."""
-    return generate_chart(graph_nonbusiness_related_subcategory_percentages)
+def display_business_revenue_by_subcategory() -> go.Figure:
+    return generate_chart(graph_business_revenue_by_subcategory)
+
+
+def display_business_expenses_by_subcategory() -> go.Figure:
+    return generate_chart(graph_business_expenses_by_subcategory)
+
+
+def display_business_expenses_and_taxes_by_subcategory() -> go.Figure:
+    return generate_chart(graph_business_expenses_and_taxes_by_subcategory)
+
+
+# Personal by category
+
+
+def display_personal_revenue_by_subcategory() -> go.Figure:
+    return generate_chart(graph_personal_revenue_by_subcategory)
+
+
+def display_personal_expenses_by_subcategory() -> go.Figure:
+    return generate_chart(graph_personal_expenses_by_subcategory)
+
+
+def display_personal_expenses_and_savings_by_subcategory() -> go.Figure:
+    return generate_chart(graph_personal_expenses_and_savings_by_subcategory)
 
 
 async def main():
@@ -113,6 +130,18 @@ async def main():
         else None
     )
 
+    # Mapping of chart names to functions
+    chart_functions = {
+        "Business Revenue vs Expense (and Tax) - Totals": display_business_revenue_vs_expense_and_tax_totals,
+        "Personal Revenue vs Expense (and Saving) - Totals": display_personal_revenue_vs_expense_and_saving_totals,
+        "Business Revenue - by Category": display_business_revenue_by_subcategory,
+        "Business Expenses - by Category": display_business_expenses_by_subcategory,
+        "Business Expenses (and Taxes) - by Category": display_business_expenses_and_taxes_by_subcategory,
+        "Personal Revenue - by Category": display_personal_revenue_by_subcategory,
+        "Personal Expenses - by Category": display_personal_expenses_by_subcategory,
+        "Personal Expenses (and Savings) - by Category": display_personal_expenses_and_savings_by_subcategory,
+    }
+
     # Set up Gradio interface
     with gr.Blocks(
         theme=gr.themes.Soft(),
@@ -126,52 +155,40 @@ async def main():
         update_data_output = gr.Textbox(label="Update Status")
         update_data_btn.click(update_cached_data, outputs=update_data_output)
 
-        gr.Markdown("### Business-related Expense vs. Revenue Totals")
-        expense_vs_revenue_totals_btn = gr.Button("Show Chart")
-        expense_vs_revenue_totals_output = gr.Plot()
-        expense_vs_revenue_totals_btn.click(
-            display_expense_vs_revenue_totals, outputs=expense_vs_revenue_totals_output
+        gr.Markdown("### Select Charts to Display")
+        chart_dropdown1 = gr.Dropdown(
+            choices=list(chart_functions.keys()),
+            label="Select First Chart",
+            value=list(chart_functions.keys())[0],
+        )
+        chart_dropdown2 = gr.Dropdown(
+            choices=list(chart_functions.keys()),
+            label="Select Second Chart",
+            value=list(chart_functions.keys())[1],
+        )
+        display_chart_btn = gr.Button("Display Charts")
+        chart_output1 = gr.Plot()
+        chart_output2 = gr.Plot()
+
+        def display_selected_charts(chart_name1, chart_name2):
+            chart_func1 = chart_functions[chart_name1]
+            chart_func2 = chart_functions[chart_name2]
+
+            return chart_func1(), chart_func2()
+
+        display_chart_btn.click(
+            display_selected_charts,
+            inputs=[chart_dropdown1, chart_dropdown2],
+            outputs=[chart_output1, chart_output2],
         )
 
-        gr.Markdown("### Business-related Expense vs. Revenue Waterfall")
-        expense_vs_revenue_waterfall_btn = gr.Button("Show Chart")
-        expense_vs_revenue_waterfall_output = gr.Plot()
-        expense_vs_revenue_waterfall_btn.click(
-            display_expense_vs_revenue_waterfall,
-            outputs=expense_vs_revenue_waterfall_output,
-        )
-
-        gr.Markdown("### Business-related Transfer to Savings Totals")
-        transfer_to_savings_totals_btn = gr.Button("Show Chart")
-        transfer_to_savings_totals_output = gr.Plot()
-        transfer_to_savings_totals_btn.click(
-            display_transfer_to_savings_totals,
-            outputs=transfer_to_savings_totals_output,
-        )
-
-        gr.Markdown("### Non-Business-related Expense Category Totals")
-        nonbusiness_expense_categories_btn = gr.Button("Show Chart")
-        nonbusiness_expense_categories_output = gr.Plot()
-        nonbusiness_expense_categories_btn.click(
-            display_nonbusiness_expense_categories,
-            outputs=nonbusiness_expense_categories_output,
-        )
-
-        gr.Markdown("### Non-Business-related Expense Category Percentages")
-        nonbusiness_expense_category_percentages_btn = gr.Button("Show Chart")
-        nonbusiness_expense_category_percentages_output = gr.Plot()
-        nonbusiness_expense_category_percentages_btn.click(
-            display_nonbusiness_expense_category_percentages,
-            outputs=nonbusiness_expense_category_percentages_output,
-        )
-
-        demo.queue()
-        demo.launch(
-            server_name=gradio_server_name,
-            server_port=int(gradio_server_port),
-            share=False,
-            auth=auth_fn,
-        )
+    demo.queue()
+    demo.launch(
+        server_name=gradio_server_name,
+        server_port=int(gradio_server_port),
+        share=False,
+        auth=auth_fn,
+    )
 
 
 if __name__ == "__main__":

@@ -14,8 +14,8 @@ COPY src src/
 RUN pip3 install --upgrade pip
 RUN pip3 install --no-cache-dir -e .
 
-# Expose port 4291 for Flask
-EXPOSE 4291
+# Expose port 7860 for Gradio
+EXPOSE 7860
 
 # Run app.py when the container launches
-CMD ["python", "src/finance_tracker/app.py"]
+CMD ["python", "src/finance_tracker/gradio-app.py"]
