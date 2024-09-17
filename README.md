@@ -39,7 +39,7 @@ A tool to visualize and track financial data using Notion as the data source and
 To run the Gradio app and see the graphs based on the finance tracker database data, execute:
 
 ```bash
-python src/finance_tracker/gradio-app.py
+python src/finance_tracker/app.py
 ```
 
 You will then be able to interact with the visualizations through the local Gradio interface.

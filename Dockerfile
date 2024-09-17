@@ -18,4 +18,4 @@ RUN pip3 install --no-cache-dir -e .
 EXPOSE 7860
 
 # Run app.py when the container launches
-CMD ["python", "src/finance_tracker/gradio-app.py"]
+CMD ["python", "src/finance_tracker/app.py"]
