@@ -21,8 +21,10 @@ def _filter_and_prepare_data(
         df (pd.DataFrame): The input DataFrame containing financial data with at least the
             following columns: ['date', 'business_related', 'cash_flow_type', 'amount',
             'main_category', 'sub_category'].
-        business_related (str): The business-related status to filter by (e.g., "Not Business-Related").
-        cash_flow_types (list): A list of cash flow types to filter by (e.g., ["Expense", "Revenue"]).
+        business_related (str): The business-related status to filter by (e.g., "Not
+            Business-Related").
+        cash_flow_types (list): A list of cash flow types to filter by (e.g., ["Expense",
+            "Revenue"]).
 
     Returns:
         pd.DataFrame: A DataFrame grouped by 'month_year', 'main_category', and 'sub_category',

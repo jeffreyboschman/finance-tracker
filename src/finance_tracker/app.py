@@ -24,36 +24,36 @@ from finance_tracker.graphs.subcategory import (
 logging.basicConfig(level=logging.INFO)
 _logger = logging.getLogger(__name__)
 
-cached_df = None
 
+class DataCache:
+    def __init__(self):
+        self.cached_df = None
 
-def get_or_update_data() -> pd.DataFrame:
-    """Fetches and returns the global cached DataFrame.
-
-    If the cached DataFrame is None, it updates the cache by fetching the data.
-
-    Returns:
+    def get_or_update_data(self) -> pd.DataFrame:
+        """Fetches and returns the global cached DataFrame.
+        If the cached DataFrame is None, it updates the cache by fetching the data.
+        Returns:
         pd.DataFrame: The cached or newly fetched DataFrame.
-    """
-    global cached_df
-    if cached_df is None:
-        _logger.info("Data not loaded. Fetching data from Notion...")
-        cached_df = get_finance_tracker_df()
-        _logger.info("Data fetched and cached successfully.")
-    return cached_df
+        """
+        if self.cached_df is None:
+            _logger.info("Data not loaded. Fetching data from Notion...")
+            self.cached_df = get_finance_tracker_df()
+            _logger.info("Data fetched and cached successfully.")
+        return self.cached_df
 
+    def update_cached_data(self) -> str:
+        """Forcibly updates the global cached DataFrame.
 
-def update_cached_data() -> str:
-    """Forcibly updates the global cached DataFrame.
-
-    Returns:
+        Returns:
         str: A message indicating that the data has been updated.
-    """
-    global cached_df
-    _logger.info("Forcing data update from Notion...")
-    cached_df = get_finance_tracker_df()
-    _logger.info("Data updated successfully.")
-    return "Data updated successfully."
+        """
+        _logger.info("Forcing data update from Notion...")
+        self.cached_df = get_finance_tracker_df()
+        _logger.info("Data updated successfully.")
+        return "Data updated successfully."
+
+
+data_cache = DataCache()
 
 
 def generate_chart(chart_func) -> go.Figure:
@@ -67,7 +67,7 @@ def generate_chart(chart_func) -> go.Figure:
     Returns:
         go.Figure: A Plotly Figure object representing the bar chart.
     """
-    df = get_or_update_data()
+    df = data_cache.get_or_update_data()
     _logger.info("Generating chart...")
     fig = chart_func(df)
     _logger.info("Chart generated successfully.")
@@ -131,6 +131,7 @@ async def main():
     )
 
     # Mapping of chart names to functions
+    # pylint: disable=line-too-long
     chart_functions = {
         "Business Revenue vs Expense (and Tax) - Totals": display_business_revenue_vs_expense_and_tax_totals,
         "Personal Revenue vs Expense (and Saving) - Totals": display_personal_revenue_vs_expense_and_saving_totals,
@@ -148,12 +149,13 @@ async def main():
         analytics_enabled=False,
         css="footer{display:none !important}",
     ) as demo:
+        # pylint: disable=no-member
         gr.Markdown("# Financial Graphs Dashboard")
 
         gr.Markdown("### Update Data")
         update_data_btn = gr.Button("Update Data")
         update_data_output = gr.Textbox(label="Update Status")
-        update_data_btn.click(update_cached_data, outputs=update_data_output)
+        update_data_btn.click(data_cache.update_cached_data, outputs=update_data_output)
 
         gr.Markdown("### Select Charts to Display")
         chart_dropdown1 = gr.Dropdown(

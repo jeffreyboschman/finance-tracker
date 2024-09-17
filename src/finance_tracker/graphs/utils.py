@@ -67,7 +67,8 @@ def add_month_year_column(df: pd.DataFrame, date_column: str = "date") -> pd.Dat
 
     Args:
         df (pd.DataFrame): The input DataFrame containing a date column.
-        date_column (str): The name of the date column to be used for creating the 'month_year' column.
+        date_column (str): The name of the date column to be used for creating the 'month_year'
+            column.
 
     Returns:
         pd.DataFrame: A new DataFrame with the 'month_year' column added.
@@ -116,6 +117,7 @@ def plot_basic_monthly_bar_chart(df: pd.DataFrame, title: str) -> go.Figure:
     return fig
 
 
+# pylint: disable=too-many-arguments
 def add_single_annotation(
     fig: go.Figure,
     text: str,
@@ -136,7 +138,8 @@ def add_single_annotation(
         fig (go.Figure): The Plotly figure to which the annotation will be added.
         text (str): The text for the annotation.
         x (float): The x-coordinate for the annotation (default is 1, which is the far right).
-        y (float): The y-coordinate for the annotation (default is 1.1, which is right above the top).
+        y (float): The y-coordinate for the annotation (default is 1.1, which is right above
+            the top).
         font_size (int): The font size of the annotation text (default is 12).
         font_color (str): The color of the annotation text (default is "black").
         bgcolor (str): The background color of the annotation (default is "white").
@@ -176,10 +179,10 @@ def add_monthly_total_annotations(
     Args:
         fig (go.Figure): The Plotly figure to which annotations will be added.
         df (pd.DataFrame): A DataFrame containing at least 'month_year' and the specified y_column.
-                           If extra_x_group is provided, the DataFrame should also contain that column.
+            If extra_x_group is provided, the DataFrame should also contain that column.
         y_column (str): The column name in df that contains the values to be summed for annotations.
-        extra_x_group (str | None): An optional column name for additional grouping within each month_year.
-                                    If provided, annotations will be added for each subgroup within each month.
+        extra_x_group (str | None): An optional column name for additional grouping within each
+            month_year. If provided, annotations will be added for each subgroup within each month.
 
     Returns:
         go.Figure: The Plotly figure with annotations added.
