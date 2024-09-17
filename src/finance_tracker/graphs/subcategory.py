@@ -1,26 +1,30 @@
-import argparse
-
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 
 import finance_tracker.graphs.utils as graph_utils
-from finance_tracker.connectors.notion_to_pandas import get_finance_tracker_df
 
 
-def _filter_and_prepare_data(df: pd.DataFrame) -> pd.DataFrame:
+def _filter_and_prepare_data(
+    df: pd.DataFrame, business_related: str, cash_flow_types: list[str]
+) -> pd.DataFrame:
     """
     Filters and prepares the DataFrame for graphing by sub-category.
 
-    This function filters the input DataFrame to include only non-business-related expenses,
-    converts the 'date' column to a monthly period, and groups the data by 'month_year',
-    'main_category', and 'sub_category' to calculate the total amount spent in each sub-category
-    for each month. It also calculates the total amount spent in each main category per month and
-    the overall monthly total for all categories.
+    This function filters the input DataFrame based on the specified business-related status
+    and a list of cash flow types, converts the 'date' column to a monthly period, and groups
+    the data by 'month_year', 'main_category', and 'sub_category' to calculate the total amount
+    spent in each sub-category for each month. It also calculates the total amount spent in each
+    main category per month and the overall monthly total for all categories.
 
     Args:
         df (pd.DataFrame): The input DataFrame containing financial data with at least the
             following columns: ['date', 'business_related', 'cash_flow_type', 'amount',
             'main_category', 'sub_category'].
+        business_related (str): The business-related status to filter by (e.g., "Not
+            Business-Related").
+        cash_flow_types (list): A list of cash flow types to filter by (e.g., ["Expense",
+            "Revenue"]).
 
     Returns:
         pd.DataFrame: A DataFrame grouped by 'month_year', 'main_category', and 'sub_category',
@@ -29,10 +33,9 @@ def _filter_and_prepare_data(df: pd.DataFrame) -> pd.DataFrame:
         and 'color' (mapped from 'main_category' for consistent coloring in charts).
     """
     df = df.copy()
-    df = df[df["business_related"] == "Not Business-Related"]
-    df["date"] = pd.to_datetime(df["date"])
-    df["month_year"] = df["date"].dt.to_period("M").astype(str)
-    df = df[df["cash_flow_type"] == "Expense"]
+    df = df[df["business_related"] == business_related]
+    df = graph_utils.add_month_year_column(df)
+    df = df[df["cash_flow_type"].isin(cash_flow_types)]
 
     # Group by month_year, main_category, and sub_category
     grouped_df = df.groupby(
@@ -80,34 +83,30 @@ def _filter_and_prepare_data(df: pd.DataFrame) -> pd.DataFrame:
     return grouped_df
 
 
-def _create_stacked_bar_chart(
-    grouped_df: pd.DataFrame, write: bool, chart_filename: str
-) -> None:
+def _create_stacked_bar_chart(grouped_df: pd.DataFrame, title: str) -> go.Figure:
     """
-    Creates and displays or writes a stacked bar chart of sub-category totals.
+    Creates a plotly stacked bar chart of sub-category totals.
 
     This function generates a stacked bar chart showing the total amount spent in each
     sub-category per month. The bars are colored according to the main category of each
     sub-category. Annotations are added above each bar to indicate the total sum of all
-    expenses for that month. The chart can either be displayed interactively or saved as
-    an HTML file.
+    expenses for that month.
 
     Args:
         grouped_df (pd.DataFrame): A grouped DataFrame containing columns for 'month_year',
             'main_category', 'sub_category', 'amount', 'main_category_sum', 'amount_monthly_total',
             and 'color'.
-        write (bool): If True, saves the chart as an HTML file. If False, displays the chart
-            interactively.
-        chart_filename (str): The name of the HTML file to write to, if `write` is True.
+        title (str): The title of the chart.
 
     Returns:
-        None
+        go.Figure: A Plotly Figure object representing the bar chart.
     """
     fig = px.bar(
         grouped_df,
         x="month_year",
         y="amount",
         color="sub_category",
+        title=title,
         hover_data={
             "main_category_sum": True,
             "main_category": True,
@@ -129,45 +128,30 @@ def _create_stacked_bar_chart(
                 trace.marker.color = graph_utils.MAIN_FINANCE_CATEGORIES_COLOR_MAP[
                     main_category
                 ]
-
     # Add annotations for monthly totals
-    monthly_total = grouped_df.groupby("month_year")["amount"].sum().reset_index()
-    for _, row in monthly_total.iterrows():
-        fig.add_annotation(
-            x=row["month_year"],
-            y=row["amount"],
-            text=f"{row['amount']:.2f}",  # Format the total sum as desired
-            showarrow=False,
-            yshift=10,  # Adjust position above the bar
-            font={"size": 12, "color": "black"},
-        )
+    fig = graph_utils.add_monthly_total_annotations(fig, grouped_df, "amount")
 
     fig.update_layout(xaxis={"showgrid": False}, yaxis={"showgrid": False})
-    graph_utils.display_or_write_chart(fig, write, chart_filename)
+    return fig
 
 
-def _create_percent_stacked_bar_chart(
-    grouped_df: pd.DataFrame, write: bool, chart_filename: str
-) -> None:
+def _create_percent_stacked_bar_chart(grouped_df: pd.DataFrame) -> go.Figure:
     """
-    Creates and displays or writes a percent-stacked bar chart of sub-category percentages.
+    Creates a plotly percent-stacked bar chart of sub-category percentages.
 
     This function generates a percent-stacked bar chart showing the percentage of the total
     amount spent in each sub-category per month. The bars are colored according to the main
     category of each sub-category. Hover data includes the actual amount spent in each sub-category,
     the total amount spent in the associated main category, and the percentage of the total spent
-    in the main category. The chart can either be displayed interactively or saved as an HTML file.
+    in the main category.
 
     Args:
         grouped_df (pd.DataFrame): A grouped DataFrame containing columns for 'month_year',
             'main_category', 'sub_category', 'amount', 'main_category_sum', 'amount_monthly_total',
             'percentage', 'main_category_percentage', and 'color'.
-        write (bool): If True, saves the chart as an HTML file. If False, displays the chart
-            interactively.
-        chart_filename (str): The name of the HTML file to write to, if `write` is True.
 
     Returns:
-        None
+        go.Figure: A Plotly Figure object representing the bar chart.
     """
     # Calculate the percentage of total amount for each sub-category
     grouped_df["percentage"] = (
@@ -228,110 +212,126 @@ def _create_percent_stacked_bar_chart(
                 ]
 
     fig.update_layout(
-        xaxis={"showgrid": False}, yaxis={"showgrid": False}, yaxis_tickformat="%"
+        xaxis={"showgrid": False}, yaxis={"showgrid": True}, yaxis_tickformat="%"
     )
-    graph_utils.display_or_write_chart(fig, write, chart_filename)
+    return fig
 
 
-def graph_nonbusiness_related_subcategory_totals(
+# Business graphs
+
+
+def graph_business_expenses_and_taxes_by_subcategory(
     df: pd.DataFrame,
-    write: bool = False,
-    chart_filename: str = "chart.html",
-) -> None:
+) -> go.Figure:
+    """
+    Generates a stacked bar chart of business expense and tax totals by sub-category.
+
+    Args:
+        df (pd.DataFrame): The input DataFrame containing financial data with at least the
+            following columns: ['date', 'business_related', 'cash_flow_type', 'amount',
+            'main_category', 'sub_category'].
+
+    Returns:
+        go.Figure: A Plotly Figure object representing the bar chart.
+    """
+    grouped_df = _filter_and_prepare_data(
+        df, "Business-Related", ["Expense", "Reserved for Taxes"]
+    )
+    return _create_stacked_bar_chart(grouped_df, "Business Expenses - By Category")
+
+
+def graph_business_expenses_by_subcategory(
+    df: pd.DataFrame,
+) -> go.Figure:
+    """
+    Generates a stacked bar chart of business expense totals by sub-category.
+
+    Args:
+        df (pd.DataFrame): The input DataFrame containing financial data with at least the
+            following columns: ['date', 'business_related', 'cash_flow_type', 'amount',
+            'main_category', 'sub_category'].
+
+    Returns:
+        go.Figure: A Plotly Figure object representing the bar chart.
+    """
+    grouped_df = _filter_and_prepare_data(df, "Business-Related", ["Expense"])
+    return _create_stacked_bar_chart(grouped_df, "Business Expenses - By Category")
+
+
+def graph_business_revenue_by_subcategory(
+    df: pd.DataFrame,
+) -> go.Figure:
+    """
+    Generates a stacked bar chart of business revenue totals by sub-category.
+
+    Args:
+        df (pd.DataFrame): The input DataFrame containing financial data with at least the
+            following columns: ['date', 'business_related', 'cash_flow_type', 'amount',
+            'main_category', 'sub_category'].
+
+    Returns:
+        go.Figure: A Plotly Figure object representing the bar chart.
+    """
+    grouped_df = _filter_and_prepare_data(df, "Business-Related", ["Revenue"])
+    return _create_stacked_bar_chart(grouped_df, "Business Revenue - By Category")
+
+
+# Personal graphs
+
+
+def graph_personal_expenses_and_savings_by_subcategory(
+    df: pd.DataFrame,
+) -> go.Figure:
+    """
+    Generates a stacked bar chart of personal expense and savings totals by sub-category.
+
+    Args:
+        df (pd.DataFrame): The input DataFrame containing financial data with at least the
+            following columns: ['date', 'business_related', 'cash_flow_type', 'amount',
+            'main_category', 'sub_category'].
+
+    Returns:
+        go.Figure: A Plotly Figure object representing the bar chart.
+    """
+    grouped_df = _filter_and_prepare_data(
+        df, "Not Business-Related", ["Expense", "Transfer to Savings"]
+    )
+    return _create_stacked_bar_chart(
+        grouped_df, "Personal Expenses and Savings - By Category"
+    )
+
+
+def graph_personal_expenses_by_subcategory(
+    df: pd.DataFrame,
+) -> go.Figure:
     """
     Generates a stacked bar chart of non-business-related expense totals by sub-category.
 
-    This function filters the provided DataFrame to include only non-business-related expenses,
-    groups the data by month and sub-category, and creates a stacked bar chart displaying the total
-    amount spent in each sub-category for each month. The bars are colored according to the main
-    category of each sub-category, and an annotation showing the total sum of all expenses for each
-    month is added above the corresponding bar. The chart can either be displayed interactively or
-    saved as an HTML file.
-
     Args:
         df (pd.DataFrame): The input DataFrame containing financial data with at least the
             following columns: ['date', 'business_related', 'cash_flow_type', 'amount',
             'main_category', 'sub_category'].
-        write (bool, optional): If True, saves the chart as an HTML file. If False, displays the
-            chart interactively. Defaults to False.
-        chart_filename (str, optional): The name of the HTML file to write to. Defaults to
-            'chart.html'.
 
     Returns:
-        None
+        go.Figure: A Plotly Figure object representing the bar chart.
     """
-    grouped_df = _filter_and_prepare_data(df)
-    _create_stacked_bar_chart(grouped_df, write, chart_filename)
+    grouped_df = _filter_and_prepare_data(df, "Not Business-Related", ["Expense"])
+    return _create_stacked_bar_chart(grouped_df, "Personal Expenses - By Category")
 
 
-def graph_nonbusiness_related_subcategory_percentages(
+def graph_personal_revenue_by_subcategory(
     df: pd.DataFrame,
-    write: bool = False,
-    chart_filename: str = "percent_chart.html",
-) -> None:
+) -> go.Figure:
     """
-    Generates a percent-stacked bar chart of non-business-related expense totals by sub-category.
-
-    This function filters the provided DataFrame to include only non-business-related expenses,
-    groups the data by month and sub-category, and creates a percent-stacked bar chart displaying
-    the percentage of the total amount spent in each sub-category for each month. The bars are
-    colored according to the main category of each sub-category, and the chart can either be
-    displayed interactively or saved as an HTML file.
+    Generates a stacked bar chart of non-business-related expense totals by sub-category.
 
     Args:
         df (pd.DataFrame): The input DataFrame containing financial data with at least the
             following columns: ['date', 'business_related', 'cash_flow_type', 'amount',
             'main_category', 'sub_category'].
-        write (bool, optional): If True, saves the chart as an HTML file. If False, displays the
-            chart interactively. Defaults to False.
-        chart_filename (str, optional): The name of the HTML file to write to. Defaults to
-            'percent_chart.html'.
 
     Returns:
-        None
+        go.Figure: A Plotly Figure object representing the bar chart.
     """
-    grouped_df = _filter_and_prepare_data(df)
-    _create_percent_stacked_bar_chart(grouped_df, write, chart_filename)
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Generate financial graphs based on expenses."
-    )
-    parser.add_argument(
-        "--chart_type",
-        type=str,
-        choices=["stacked", "percent"],
-        default="stacked",
-        help="Type of chart to generate: 'stacked' for a regular stacked bar chart, 'percent' for"
-        "a percent-stacked bar chart.",
-    )
-    parser.add_argument(
-        "--write",
-        action="store_true",
-        help="If specified, the chart will be saved as an HTML file. Otherwise, it will be"
-        "displayed interactively.",
-    )
-    parser.add_argument(
-        "--filename",
-        type=str,
-        default="chart.html",
-        help="Filename for the output HTML file if --write is specified. Defaults to 'chart.html'.",
-    )
-
-    args = parser.parse_args()
-
-    full_df = get_finance_tracker_df()
-
-    if args.chart_type == "stacked":
-        graph_nonbusiness_related_subcategory_totals(
-            df=full_df,
-            write=args.write,
-            chart_filename=args.filename,
-        )
-    elif args.chart_type == "percent":
-        graph_nonbusiness_related_subcategory_percentages(
-            df=full_df,
-            write=args.write,
-            chart_filename=args.filename,
-        )
+    grouped_df = _filter_and_prepare_data(df, "Not Business-Related", ["Revenue"])
+    return _create_stacked_bar_chart(grouped_df, "Personal Revenue - By Category")

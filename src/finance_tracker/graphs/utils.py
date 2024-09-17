@@ -24,19 +24,20 @@ CASH_FLOW_PATTERN_MAP = {
 
 # Select LM (RGB) colors from
 # https://optemization.notion.site/b58409d4a92444368cbad42b60d9ea55?v=d05b18c8bb8942c5b418dda9e0a060ff
+
 MAIN_FINANCE_CATEGORIES_COLOR_MAP = {
+    "Housing": "rgba(245,93,0,0.2)",  # orange
+    "Household Goods": "rgba(221,0,129,0.2)",  # pink
     "Food": "rgba(255,0,26,0.2)",  # red
     "Entertainment": "rgba(0,120,223,0.2)",  # blue
-    "Housing": "rgba(245,93,0,0.2)",  # orange
-    "Transportation": "rgba(103,36,222,0.2)",  # purple
-    "Family and Friends": "rgba(0,120,223,0.2)",  # blue
-    "Government": "rgba(206,205,202,0.5)",  # black/white
-    "Finance": "rgba(0,135,107,0.2)",  # green
-    "Health and Wellness": "rgba(255,220,73,0.5)",  # yellow
     "Utilities": "rgba(155,154,151,0.4)",  # grey
-    "Investments": "rgba(221,0,129,0.2)",  # pink
+    "Health and Wellness": "rgba(255,220,73,0.5)",  # yellow
     "Career Related": "rgba(140,46,0,0.2)",  # brown
+    "Transportation": "rgba(103,36,222,0.2)",  # purple
     "Digital Services/Products/Tools": "rgba(206,205,202,0.5)",  # black/white
+    "Finance": "rgba(0,135,107,0.2)",  # green
+    "Family and Friends": "rgba(221,0,129,0.2)",  # pink
+    "Government": "rgba(206,205,202,0.5)",  # black/white
 }
 
 
@@ -58,46 +59,23 @@ def get_days_in_month(year: int, month: int) -> list[int]:
     return days_in_month
 
 
-def preprocess_business_data(df: pd.DataFrame) -> pd.DataFrame:
-    """Preprocess the DataFrame by filtering business-related entries and creating the
-    'month_year' column.
+def add_month_year_column(df: pd.DataFrame, date_column: str = "date") -> pd.DataFrame:
+    """Adds a 'month_year' column to the DataFrame based on the specified date column.
 
-    This function filters the input DataFrame to include only rows marked as "Business-Related"
-    and creates a new 'month_year' column based on the 'date' column. The 'date' column is
-    converted to datetime format.
+    This function converts the specified date column to datetime format and creates a new
+    'month_year' column representing the year and month of each date.
 
     Args:
-        df (pd.DataFrame): The input DataFrame containing financial data with columns
-            ['date', 'business_related']
+        df (pd.DataFrame): The input DataFrame containing a date column.
+        date_column (str): The name of the date column to be used for creating the 'month_year'
+            column.
 
     Returns:
-        pd.DataFrame: A new DataFrame with only business-related entries and a 'month_year'
-            column.
+        pd.DataFrame: A new DataFrame with the 'month_year' column added.
     """
-    df = df.copy()
-    df = df[df["business_related"] == "Business-Related"]
-    df["date"] = pd.to_datetime(df["date"])
-    df["month_year"] = df["date"].dt.to_period("M").astype(str)
+    df[date_column] = pd.to_datetime(df[date_column])
+    df["month_year"] = df[date_column].dt.to_period("M").astype(str)
     return df
-
-
-def display_or_write_chart(
-    fig: go.Figure, write: bool = False, file_name: str = "chart.html"
-) -> None:
-    """Display the Plotly figure or write it to an HTML file.
-
-    This function either displays the provided Plotly figure interactively or saves it as
-    an HTML file, depending on the value of the 'write' argument.
-
-    Args:
-        fig (go.Figure): The Plotly figure to be displayed or written.
-        write (bool, optional): If True, writes the figure to an HTML file. Defaults to False.
-        file_name (str, optional): The name of the HTML file to write to. Defaults to 'chart.html'.
-    """
-    if write:
-        fig.write_html(file_name)
-    else:
-        fig.show()
 
 
 def plot_basic_monthly_bar_chart(df: pd.DataFrame, title: str) -> go.Figure:
@@ -136,4 +114,122 @@ def plot_basic_monthly_bar_chart(df: pd.DataFrame, title: str) -> go.Figure:
     fig.update_xaxes(type="category")
     fig.update_layout(xaxis_tickangle=-45)
 
+    return fig
+
+
+# pylint: disable=too-many-arguments
+def add_single_annotation(
+    fig: go.Figure,
+    text: str,
+    x: float = 1,
+    y: float = 1.1,
+    font_size: int = 12,
+    font_color: str = "black",
+    bgcolor: str = "white",
+    bordercolor: str = "black",
+    borderwidth: int = 1,
+) -> go.Figure:
+    """Adds a single annotation on a Plotly figure.
+
+    This function adds an annotation to the specified Plotly figure with customizable text and
+    other styling parameters.
+
+    Args:
+        fig (go.Figure): The Plotly figure to which the annotation will be added.
+        text (str): The text for the annotation.
+        x (float): The x-coordinate for the annotation (default is 1, which is the far right).
+        y (float): The y-coordinate for the annotation (default is 1.1, which is right above
+            the top).
+        font_size (int): The font size of the annotation text (default is 12).
+        font_color (str): The color of the annotation text (default is "black").
+        bgcolor (str): The background color of the annotation (default is "white").
+        bordercolor (str): The border color of the annotation (default is "black").
+        borderwidth (int): The border width of the annotation (default is 1).
+
+    Returns:
+        go.Figure: The Plotly figure with the annotation added.
+    """
+    fig.add_annotation(
+        text=text,
+        xref="paper",
+        yref="paper",
+        x=x,
+        y=y,
+        showarrow=False,
+        font={"size": font_size, "color": font_color},
+        bgcolor=bgcolor,
+        bordercolor=bordercolor,
+        borderwidth=borderwidth,
+    )
+    return fig
+
+
+def add_monthly_total_annotations(
+    fig: go.Figure,
+    df: pd.DataFrame,
+    y_column: str = "amount",
+    extra_x_group: str | None = None,
+) -> go.Figure:
+    """
+    Adds annotations for monthly totals to a Plotly figure.
+
+    This function can add annotations for either the total amount per month or for each
+    subgroup within a month, depending on the presence of an extra grouping column.
+
+    Args:
+        fig (go.Figure): The Plotly figure to which annotations will be added.
+        df (pd.DataFrame): A DataFrame containing at least 'month_year' and the specified y_column.
+            If extra_x_group is provided, the DataFrame should also contain that column.
+        y_column (str): The column name in df that contains the values to be summed for annotations.
+        extra_x_group (str | None): An optional column name for additional grouping within each
+            month_year. If provided, annotations will be added for each subgroup within each month.
+
+    Returns:
+        go.Figure: The Plotly figure with annotations added.
+    """
+    if extra_x_group:
+        monthly_totals = (
+            df.groupby(["month_year", extra_x_group])[y_column].sum().reset_index()
+        )
+
+        # Get unique cash flow types and their positions
+        unique_x_groups = df[extra_x_group].unique()
+        num_x_groups = len(unique_x_groups)
+
+        # Calculate the width of each bar and the spacing between bars
+        bar_width = 1 / (num_x_groups)
+        spacing = bar_width / 2  # Adjust as needed for spacing
+
+        group_positions = {x_group: i for i, x_group in enumerate(unique_x_groups)}
+
+        for _, row in monthly_totals.iterrows():
+            # Calculate the x offset based on the cash flow type position
+            # x_offset = (
+            #     group_positions[row[extra_x_group]] - (num_x_groups - 1) / 2
+            # ) * 0.7  # Adjust 0.7 as needed for spacing
+            x_offset = (
+                group_positions[row[extra_x_group]] - (num_x_groups - 1) / 2
+            ) * (bar_width + spacing)
+
+            fig.add_annotation(
+                x=row["month_year"],
+                y=row[y_column],
+                xshift=x_offset * 100,  # Convert to pixels for xshift
+                text=f"¥{row[y_column]:.0f}",  # Format the total sum as desired
+                showarrow=False,
+                yshift=10,  # Adjust position above the bar
+                font={"size": 12, "color": "black"},
+            )
+
+    else:
+        monthly_total = df.groupby("month_year")[y_column].sum().reset_index()
+        for _, row in monthly_total.iterrows():
+            fig.add_annotation(
+                x=row["month_year"],
+                y=row[y_column],
+                text=f"¥{row[y_column]:.0f}",  # Format the total sum as desired
+                showarrow=False,
+                yshift=10,  # Adjust position above the bar
+                font={"size": 12, "color": "black"},
+            )
     return fig

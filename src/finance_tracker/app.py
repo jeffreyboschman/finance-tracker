@@ -1,115 +1,197 @@
+import asyncio
 import logging
 import os
-from typing import Callable
 
+import gradio as gr
 import pandas as pd
-from flask import Flask, send_file
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
-from werkzeug.utils import secure_filename
+import plotly.graph_objects as go
+from dotenv import load_dotenv
 
 from finance_tracker.connectors.notion_to_pandas import get_finance_tracker_df
-from finance_tracker.graphs.bus_expense_vs_revenue_totals import (
-    graph_business_related_expense_vs_revenue_totals,
+from finance_tracker.graphs.revenue_vs_expense_totals import (
+    graph_business_revenue_vs_expense_and_tax_totals,
+    graph_personal_revenue_vs_expense_and_saving_totals,
 )
-from finance_tracker.graphs.bus_expense_vs_revenue_waterfall import (
-    graph_business_related_expense_vs_revenue_waterfall,
-)
-from finance_tracker.graphs.bus_transfer_to_savings_totals import (
-    graph_business_related_transfer_to_savings_totals,
+from finance_tracker.graphs.subcategory import (
+    graph_business_expenses_and_taxes_by_subcategory,
+    graph_business_expenses_by_subcategory,
+    graph_business_revenue_by_subcategory,
+    graph_personal_expenses_and_savings_by_subcategory,
+    graph_personal_expenses_by_subcategory,
+    graph_personal_revenue_by_subcategory,
 )
 
 logging.basicConfig(level=logging.INFO)
-
-app = Flask(__name__)
-
-limiter = Limiter(
-    get_remote_address, app=app, default_limits=["200 per day", "50 per hour"]
-)
-
-OUTPUT_DIR = os.path.join(os.getcwd(), "output")
-os.makedirs(OUTPUT_DIR, exist_ok=True)
+_logger = logging.getLogger(__name__)
 
 
-def generate_and_serve_chart(
-    chart_func: Callable[[pd.DataFrame, bool, str], None], filename: str
-) -> send_file:
-    """Generates a chart using the provided function and serves it as an HTML file.
+class DataCache:
+    def __init__(self):
+        self.cached_df = None
 
-    This function retrieves the full DataFrame, generates a chart by invoking the specified
-    chart function, and then serves the chart as an HTML file.
+    def get_or_update_data(self) -> pd.DataFrame:
+        """Fetches and returns the global cached DataFrame.
+        If the cached DataFrame is None, it updates the cache by fetching the data.
+        Returns:
+        pd.DataFrame: The cached or newly fetched DataFrame.
+        """
+        if self.cached_df is None:
+            _logger.info("Data not loaded. Fetching data from Notion...")
+            self.cached_df = get_finance_tracker_df()
+            _logger.info("Data fetched and cached successfully.")
+        return self.cached_df
+
+    def update_cached_data(self) -> str:
+        """Forcibly updates the global cached DataFrame.
+
+        Returns:
+        str: A message indicating that the data has been updated.
+        """
+        _logger.info("Forcing data update from Notion...")
+        self.cached_df = get_finance_tracker_df()
+        _logger.info("Data updated successfully.")
+        return "Data updated successfully."
+
+
+data_cache = DataCache()
+
+
+def generate_chart(chart_func) -> go.Figure:
+    """Generates a chart using the provided function and returns a Plotly
+    Figure object representing the chart.
 
     Args:
-        chart_func (Callable[[pd.DataFrame, bool, str], None]): The function to generate the chart.
-        filename (str): The name of the HTML file to save and serve the chart.
+        chart_func (Callable[[pd.DataFrame], go.Figure]): The function to generate
+            the chart.
 
     Returns:
-        Response: The Flask response object that serves the HTML file.
+        go.Figure: A Plotly Figure object representing the bar chart.
     """
-    logging.info("Generating chart: %s", filename)
-
-    filename = secure_filename(filename)
-
-    full_df = get_finance_tracker_df()
-    chart_path = os.path.join(OUTPUT_DIR, filename)
-    chart_func(full_df, write=True, chart_filename=chart_path)
-    logging.info("Serving chart: %s", chart_path)
-    try:
-        return send_file(chart_path)
-    except FileNotFoundError:
-        return "File not found", 404
+    df = data_cache.get_or_update_data()
+    _logger.info("Generating chart...")
+    fig = chart_func(df)
+    _logger.info("Chart generated successfully.")
+    return fig
 
 
-@app.route("/graphs/expense_vs_revenue_totals")
-@limiter.limit("2 per minute")
-def serve_business_related_expense_vs_revenue_totals() -> send_file:
-    """Serves the business-related expense vs. revenue totals chart.
+# Revenue vs Expense totals
 
-    This route generates the business-related expense vs. revenue totals chart and serves it
-    as an HTML file.
 
-    Returns:
-        Response: The Flask response object that serves the HTML file.
-    """
-    return generate_and_serve_chart(
-        graph_business_related_expense_vs_revenue_totals,
-        "expense_vs_revenue_totals.html",
+def display_business_revenue_vs_expense_and_tax_totals() -> go.Figure:
+    """Displays the business expense vs. revenue totals chart."""
+    return generate_chart(graph_business_revenue_vs_expense_and_tax_totals)
+
+
+def display_personal_revenue_vs_expense_and_saving_totals() -> go.Figure:
+    """Displays the personal expense vs. revenue totals chart."""
+    return generate_chart(graph_personal_revenue_vs_expense_and_saving_totals)
+
+
+# Business by category
+
+
+def display_business_revenue_by_subcategory() -> go.Figure:
+    return generate_chart(graph_business_revenue_by_subcategory)
+
+
+def display_business_expenses_by_subcategory() -> go.Figure:
+    return generate_chart(graph_business_expenses_by_subcategory)
+
+
+def display_business_expenses_and_taxes_by_subcategory() -> go.Figure:
+    return generate_chart(graph_business_expenses_and_taxes_by_subcategory)
+
+
+# Personal by category
+
+
+def display_personal_revenue_by_subcategory() -> go.Figure:
+    return generate_chart(graph_personal_revenue_by_subcategory)
+
+
+def display_personal_expenses_by_subcategory() -> go.Figure:
+    return generate_chart(graph_personal_expenses_by_subcategory)
+
+
+def display_personal_expenses_and_savings_by_subcategory() -> go.Figure:
+    return generate_chart(graph_personal_expenses_and_savings_by_subcategory)
+
+
+async def main():
+    load_dotenv()
+
+    gradio_server_name = os.environ.get("GRADIO_SERVER_NAME", "0.0.0.0")
+    gradio_server_port = os.environ.get("GRADIO_SERVER_PORT", "7860")
+    gradio_user_password = os.environ.get("GRADIO_PASSWORD")
+
+    auth_fn = (
+        (lambda _username, password: password == gradio_user_password)
+        if gradio_user_password is not None
+        else None
     )
 
+    # Mapping of chart names to functions
+    # pylint: disable=line-too-long
+    chart_functions = {
+        "Business Revenue vs Expense (and Tax) - Totals": display_business_revenue_vs_expense_and_tax_totals,
+        "Personal Revenue vs Expense (and Saving) - Totals": display_personal_revenue_vs_expense_and_saving_totals,
+        "Business Revenue - by Category": display_business_revenue_by_subcategory,
+        "Business Expenses - by Category": display_business_expenses_by_subcategory,
+        "Business Expenses (and Taxes) - by Category": display_business_expenses_and_taxes_by_subcategory,
+        "Personal Revenue - by Category": display_personal_revenue_by_subcategory,
+        "Personal Expenses - by Category": display_personal_expenses_by_subcategory,
+        "Personal Expenses (and Savings) - by Category": display_personal_expenses_and_savings_by_subcategory,
+    }
 
-@app.route("/graphs/expense_vs_revenue_waterfall")
-@limiter.limit("2 per minute")
-def serve_business_related_expense_vs_revenue_waterfall():
-    """Serves the business-related expense vs. revenue vs. savings waterfall chart.
+    # Set up Gradio interface
+    with gr.Blocks(
+        theme=gr.themes.Soft(),
+        analytics_enabled=False,
+        css="footer{display:none !important}",
+    ) as demo:
+        # pylint: disable=no-member
+        gr.Markdown("# Financial Graphs Dashboard")
 
-    This route generates the business-related expense vs. revenue vs. savings waterfall chart
-    and serves it as an HTML file.
+        gr.Markdown("### Update Data")
+        update_data_btn = gr.Button("Update Data")
+        update_data_output = gr.Textbox(label="Update Status")
+        update_data_btn.click(data_cache.update_cached_data, outputs=update_data_output)
 
-    Returns:
-        Response: The Flask response object that serves the HTML file.
-    """
-    return generate_and_serve_chart(
-        graph_business_related_expense_vs_revenue_waterfall,
-        "expense_vs_revenue_waterfall.html",
-    )
+        gr.Markdown("### Select Charts to Display")
+        chart_dropdown1 = gr.Dropdown(
+            choices=list(chart_functions.keys()),
+            label="Select First Chart",
+            value=list(chart_functions.keys())[0],
+        )
+        chart_dropdown2 = gr.Dropdown(
+            choices=list(chart_functions.keys()),
+            label="Select Second Chart",
+            value=list(chart_functions.keys())[1],
+        )
+        display_chart_btn = gr.Button("Display Charts")
+        chart_output1 = gr.Plot()
+        chart_output2 = gr.Plot()
 
+        def display_selected_charts(chart_name1, chart_name2):
+            chart_func1 = chart_functions[chart_name1]
+            chart_func2 = chart_functions[chart_name2]
 
-@app.route("/graphs/transfer_to_savings_totals")
-@limiter.limit("2 per minute")
-def serve_business_related_transfer_to_savings_totals():
-    """Serves the business-related transfer to savings totals chart.
+            return chart_func1(), chart_func2()
 
-    This route generates the business-related transfer to savings totals chart and serves it
-    as an HTML file.
+        display_chart_btn.click(
+            display_selected_charts,
+            inputs=[chart_dropdown1, chart_dropdown2],
+            outputs=[chart_output1, chart_output2],
+        )
 
-    Returns:
-        Response: The Flask response object that serves the HTML file.
-    """
-    return generate_and_serve_chart(
-        graph_business_related_transfer_to_savings_totals,
-        "transfer_to_savings_totals.html",
+    demo.queue()
+    demo.launch(
+        server_name=gradio_server_name,
+        server_port=int(gradio_server_port),
+        share=False,
+        auth=auth_fn,
     )
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=4291)
+    asyncio.run(main())
